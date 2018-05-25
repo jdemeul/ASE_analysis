@@ -1,17 +1,17 @@
 ## create final plot to show recurrences and outlying log2fc
 
 # get sample IDs mappings
-sampledf <- read.delim(file = "20171108_complete_samples", as.is = T)
+sampledf <- read.delim(file = "20180525_complete_samples.txt", as.is = T)
 
 # get log2fc matrix (VST)
-l2fcfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20171212_RNAlog2fc_vst.txt"
+l2fcfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180525_RNAlog2fc_vst.txt"
 l2fcdf <-  read.delim(file = l2fcfile, as.is = T)
 
 # reformat column names
-colnames(l2fcdf)[sapply(X = sampledf$sampleid, FUN = grep, x = colnames(l2fcdf), simplify = T)] <- paste0("WES_", sampledf$t_wes_id)
+colnames(l2fcdf)[sapply(X = sub(pattern = "-", replacement = ".", sampledf$sampleid), FUN = grep, x = colnames(l2fcdf), simplify = T)] <- c(paste0("WES_", sampledf[!sampledf$cell_line, "t_wes_id"]), sub(pattern = "-", replacement = ".", x = sampledf[sampledf$cell_line, "sampleid"]))
 
 # get allelic imbalance pooled samples file
-airesultsfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20171212_alloccurences_vst.txt"
+airesultsfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180525_alloccurences_vst.txt"
 airesults <- read.delim(file = airesultsfile, sep = "\t", as.is = T)
 airesults_sub <- airesults[airesults$n_up > 2, ]
 
@@ -26,12 +26,14 @@ l2fcdf_sub$gene_name <- factor(x = l2fcdf_sub$gene_name, levels = l2fcdf_sub[ord
 
 
 ### MOD, include ALL AI cases irrespective of log2fc
-resultfiles <- list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/nomatch/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T)
+resultfiles <- c(list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/nomatch/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T),
+                 list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/cell_lines/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T))
+
 airesults_all <- lapply(X = resultfiles, FUN = read.delim, as.is = T)
 # View(ai_results[[1]])
 
 airesults_all_df <- do.call(rbind, airesults_all)
-airesults_all_df$sample <- rep(sub(pattern = "_imbalance_expression_vst.txt", replacement = "", x = basename(resultfiles)), sapply(X = airesults_all, nrow))
+airesults_all_df$sample <- sub(pattern = "-", replacement = ".", rep(sub(pattern = "_imbalance_expression_vst.txt", replacement = "", x = basename(resultfiles)), sapply(X = airesults_all, nrow)))
 
 airesults_all_df <- airesults_all_df[airesults_all_df$padj <= .05, ]
 airesults_all_df <- airesults_all_df[airesults_all_df$contig != "X" & !grepl(airesults_all_df$gene_name, pattern = "HLA-*") &

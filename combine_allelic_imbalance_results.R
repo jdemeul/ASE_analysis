@@ -1,6 +1,7 @@
 ## check recurrence of allelically imbalanced + up/downregulated genes
 
-resultfiles <- list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/nomatch/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T)
+resultfiles <- c(list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/nomatch/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T),
+                 list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/cell_lines/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T))
 ai_results <- lapply(X = resultfiles, FUN = read.delim, as.is = T)
 # View(ai_results[[1]])
 
@@ -15,4 +16,4 @@ aidf <- aidf[aidf$contig != "X" & !grepl(aidf$gene_name, pattern = "HLA-*") &
 recurrent_genes <- sort(table(aidf$gene_name), decreasing = T)
 head(recurrent_genes, n = 25)
 
-write.table(x = aidf, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20171212_allelic_imbalance_pooledsamples_vst.txt", sep = "\t", quote = F, row.names = F, col.names = T)
+write.table(x = aidf, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180525_allelic_imbalance_pooledsamples_vst.txt", sep = "\t", quote = F, row.names = F, col.names = T)
