@@ -66,7 +66,7 @@ combine_loci_nomatch <- function(countsdir, sample_id, bsgnom) {
 
 
 ASEReadCount <- function(hetSNPvcf, bamfile, refgenome, outfile, minBaseQ = 20, minMapQ = 35) {
-  cmd <- paste0(JAVA, " -jar /srv/sw/eb/software/GATK/3.8-Java-1.8.0_141/GenomeAnalysisTK.jar",
+  cmd <- paste0(JAVA, " -jar /srv/sw/eb/software/GATK/3.8-1-Java-1.8.0_162/GenomeAnalysisTK.jar",
                 " -R ", refgenome,
                 " -T ASEReadCounter",
                 " -o ", outfile,
