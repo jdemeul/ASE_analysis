@@ -17,7 +17,8 @@ alleleCount <- function(locifile, bam, outfile, min_baq=20, min_maq=35) {
               "-o", outfile,
               "-l", locifile,
               "-m", min_baq,
-              "-q", min_maq, sep=" ")
+              "-q", min_maq,
+              "--dense-snps", sep=" ")
   system(cmd, wait=T)
 }
 

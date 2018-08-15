@@ -1,13 +1,9 @@
-## process TCGA LAML gdc_smaple_table
+## process TCGA LAML gdc_sample_table
 library(rjson)
 tcgasamplesheet <- read.delim("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/gdc_sample_sheet.2018-08-12.tsv", as.is = T)
 tcgajson <- fromJSON(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/files.2018-08-12.json")
-# tcgaRNA <- tcgasamples[sapply(tcgasamples, function(x) x$experimental_strategy == "RNA-Seq")]
 
 tcgajsondf <- as.data.frame(do.call(rbind, lapply(tcgajson, unlist)))
-
-colnames(tcgajsondf)
-colnames(tcgasamplesheet)
 
 tcgadata <- merge(x = tcgasamplesheet, y = tcgajsondf, by.x = "File.Name", by.y = "file_name")
 
