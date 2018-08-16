@@ -6,6 +6,7 @@ bsgnom <- BSgenome.Hsapiens.NCBI.GRCh38
 library(biomaRt)
 library(ggplot2)
 library(rslurm)
+library(VGAM)
 
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/1000Genomes_getAllelecounts.R")
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/utils.R")
@@ -85,8 +86,10 @@ get_ase_tcga_laml <- function(sample_id) {
 }
 
 
+# debug(get_ase_tcga_laml)
+# get_ase_tcga_laml(sample_id = sampledf[1,"sample_id"])
 
-amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 6, cpus_per_node = 3, add_objects = ls(),
+amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 15, cpus_per_node = 2, add_objects = ls(),
                           pkgs = rev(.packages()), libPaths = .libPaths(), slurm_options = list(), submit = T)
 print_job_status(amlasejob)
 # cancel_slurm(amlasejob)
