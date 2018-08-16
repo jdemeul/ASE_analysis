@@ -8,6 +8,8 @@ bsgenome_hg19 <- BSgenome.Hsapiens.UCSC.hg19
 library(biomaRt)
 library(ggplot2)
 library(parallel)
+library(VGAM)
+library(rslurm)
 
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/1000Genomes_getAllelecounts.R")
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/utils.R")
@@ -229,21 +231,26 @@ plot_ase_manhattan <- function(asedf) {
 
 ### functions
 
+get_ase_aml_cell <- function(SAMPLEID) {
+# for (SAMPLEID in sampledf$id) {
 # for (SAMPLEID in sampledf[1:nrow(sampledf), "sampleid"]) {
 # for (i in 2:nrow(sampledf)) {
 # i <- 7
 ## required input
-SAMPLEID <- sampledf[i, "id"]
+# SAMPLEID <- sampledf[i, "id"]
 # TWESID <- paste0("WES_", sampledf[i, "t_wes_id"])
-TWESID <- sampledf[i, "Number"]
+  TWESID <- SAMPLEID
+# TWESID <- sampledf[i, "Number"]
 # MWESID <- paste0("WES_", sampledf[i, "n_wes_id"])
 
 print(TWESID)
 
 
 # EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/Exome_Data/"
-EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/exomes/patients/mapped"
-RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/patients/mapped"
+# EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/exomes/patients/mapped"
+# RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/patients/mapped"
+EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/exomes/cell_lines/bam/"
+RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/cell_lines/mapped/"
 # MBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(MWESID, "_.*bam$"), recursive = T, full.names = T)
 TBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(SAMPLEID, ".*bam$"), recursive = T, full.names = T)
 TRNABAMFILE <- list.files(path = RNADIR, pattern = paste0(TWESID, ".*bam$"), recursive = T, full.names = T)
@@ -255,7 +262,7 @@ TOUTDIR <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-A
 minMapQ <- 35
 minBaseQ <- 20
 
-NCORES <- 4
+NCORES <- 1
 
 ## get allelecounts for matched normal exome
 chrs <- c(1:22, "X")
@@ -319,6 +326,7 @@ asedf <- compute_pvals_nomatch(toutdir = TOUTDIR, tsample = TWESID, exclude_bad_
 ## Some QC
 
 # assess filtering
+options(bitmapType = "cairo")
 p2 <- ggplot(data = asedf, mapping = aes(x = pval, fill = filter <= 0.01)) + geom_histogram(binwidth = 0.01) + scale_y_log10()
 # p2
 ggsave(filename = file.path(TOUTDIR, paste0(TWESID, "_filter.png")), plot = p2, dpi = 300, width = 10, height = 7)
@@ -346,5 +354,13 @@ p4 <- plot_ase_manhattan(asedf = asedf)
 # p4
 ggsave(filename = file.path(TOUTDIR, paste0(TWESID, "_manhattan.png")), plot = p4, dpi = 300, width = 10, height = 3)
 
-
+return(NULL)
 }
+
+
+sampledf <- data.frame(SAMPLEID = c("HL60", "MOLM16", "OCI_AML2", "OCI_AML3", "TF1", "THP1_S6", "THP1_S13" ))
+
+
+amlasecelljob <- slurm_apply(f = get_ase_aml_cell, params = sampledf[,"SAMPLEID", drop = F], jobname = "ase_aml_cell", nodes = 7, cpus_per_node = 2, add_objects = ls(),
+                         pkgs = rev(.packages()), libPaths = .libPaths(), slurm_options = list(), submit = T)
+print_job_status(amlasecelljob)
