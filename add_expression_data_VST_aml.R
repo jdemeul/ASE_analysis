@@ -116,12 +116,12 @@ hstxdb <- makeTxDbFromGFF(file = gtffile, organism = "Homo sapiens")
 seqlevels(hstxdb) <- sub(pattern = "chr", replacement = "", x = seqlevels(seqinfo(hstxdb)))
 hsexondb <- exons(x = hstxdb, columns = c("gene_id"))
 
-sampledf <- read.delim(file = "20180626_aml_samples.txt", as.is = T)
+sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180626_aml_samples.txt", as.is = T)
 sampledf <-  rbind(sampledf, c(Number = "CD34", 'No.' = "", Initials = "", id = "CD34"))
 sampledf$cell_line <- F
 
 # add in the log2-fold change data and actual gene names
-l2fcfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180706_RNAlog2fc_vst_AML.txt"
+l2fcfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180706_RNAlog2fc_vst_AML.txt"
 l2fcdf <-  read.delim(file = l2fcfile, as.is = T)
 
 for (i in 1:nrow(sampledf)) {
@@ -130,10 +130,10 @@ for (i in 1:nrow(sampledf)) {
   
   ## read a results file
   if (sampledf[i, "cell_line"]) {
-    ase_resultsfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/cell_lines/", SAMPLEID, "/", SAMPLEID, "_ase_out.txt")
+    ase_resultsfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/cell_lines/", SAMPLEID, "/", SAMPLEID, "_ase_out.txt")
   } else {
     # TWESID <- paste0("WES_", sampledf[i, "t_wes_id"])
-    ase_resultsfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/AML_ase/", SAMPLEID, "/", SAMPLEID, "_ase_out.txt")
+    ase_resultsfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_ase_out.txt")
   }
   ase_results <- read.delim(file = ase_resultsfile, as.is = T)
   
@@ -159,9 +159,9 @@ for (i in 1:nrow(sampledf)) {
   outdf$contig <- factor(outdf$contig, levels = c(1:22, "X"))
   outdf <- outdf[order(outdf$contig, as.integer(unlist(lapply(strsplit(outdf$positions, split = ","), FUN = function(x) x[1])))), ]
   if (sampledf[i, "cell_line"]) {
-    outfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/cell_lines/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.txt")
+    outfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/cell_lines/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.txt")
   } else {
-    outfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.txt")
+    outfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.txt")
   }
   write.table(x = outdf, file = outfile, quote = F, sep = "\t", row.names = F, col.names = T)
   
@@ -169,9 +169,9 @@ for (i in 1:nrow(sampledf)) {
   # plot
   p1 <- plot_imbalance_expression(imbalancedf = outdf)
   if (sampledf[i, "cell_line"]) {
-    plotfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/cell_lines/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.png")
+    plotfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/cell_lines/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.png")
   } else {
-    plotfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.png")
+    plotfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.png")
   }
   ggsave(filename = plotfile, plot = p1, dpi = 300, width = 15, height = 6)
 }

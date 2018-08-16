@@ -8,18 +8,18 @@ bsgenome_hg19 <- BSgenome.Hsapiens.UCSC.hg19
 library(biomaRt)
 library(ggplot2)
 
-source(file = "1000Genomes_getAllelecounts.R")
-source(file = "utils.R")
+source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/1000Genomes_getAllelecounts.R")
+source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/utils.R")
 
 
 ## statics
-ALLELECOUNTER <- "/home/jdemeul/bin/alleleCounter"
+ALLELECOUNTER <- "/srv/sw/eb/software/alleleCount/4.0.0-GCCcore-6.4.0/bin/alleleCounter"
 ALLELESDIR <- "/srv/shared/vanloo/pipeline-files/human/references/1000genomes/1000genomes_20130501_v5b/"
-JAVA <- "/srv/sw/eb/software/Java/1.8.0_141/bin/java"
+JAVA <- "/srv/sw/eb/software/Java/1.8.0_162/bin/java"
 
 
 # sampledf <- read.delim(file = "20171108_complete_samples", as.is = T)
-sampledf <- read.delim(file = "20180626_aml_samples.txt", as.is = T)
+sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180626_aml_samples.txt", as.is = T)
 sampledf$id <- paste0(sampledf$No., sampledf$Initials)
 sampledf <-  rbind(sampledf, c(Number = "CD34", 'No.' = "", Initials = "", id = "CD34"))
 # sampledf <- sampledf[!is.na(sampledf$n_wes_id), ]
@@ -121,7 +121,7 @@ combine_loci_nomatch <- function(countsdir, sample_id) {
   }
   allelecounts_vr <- sort(allelecounts_vr)
   sampleNames(allelecounts_vr) <- sample_id
-  writeVcf(obj = allelecounts_vr, filename = locivcf)
+  writeVcf(obj = allelecounts_vr, filename = locivcf, index = T)
   
   return(NULL)
 }
@@ -130,7 +130,7 @@ combine_loci_nomatch <- function(countsdir, sample_id) {
 ## Use ASEReadCounter to get allelecounts on the RNA
 
 ASEReadCount <- function(hetSNPvcf, bamfile, refgenome, outfile, minBaseQ = 20, minMapQ = 35) {
-  cmd <- paste0(JAVA, " -jar /srv/sw/eb/software/GATK/3.8-Java-1.8.0_141/GenomeAnalysisTK.jar",
+  cmd <- paste0(JAVA, " -jar /srv/sw/eb/software/GATK/3.8-1-Java-1.8.0_162/GenomeAnalysisTK.jar",
                 " -R ", refgenome,
                 " -T ASEReadCounter",
                 " -o ", outfile,
@@ -230,7 +230,7 @@ plot_ase_manhattan <- function(asedf) {
 
 # for (SAMPLEID in sampledf[1:nrow(sampledf), "sampleid"]) {
 # for (i in 2:nrow(sampledf)) {
-# i <- 1
+# i <- 7
 ## required input
 SAMPLEID <- sampledf[i, "id"]
 # TWESID <- paste0("WES_", sampledf[i, "t_wes_id"])
@@ -242,19 +242,19 @@ print(TWESID)
 
 # EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/Exome_Data/"
 EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/exomes/patients/mapped"
-RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/mapped"
+RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/patients/mapped"
 # MBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(MWESID, "_.*bam$"), recursive = T, full.names = T)
 TBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(SAMPLEID, ".*bam$"), recursive = T, full.names = T)
 TRNABAMFILE <- list.files(path = RNADIR, pattern = paste0(TWESID, ".*bam$"), recursive = T, full.names = T)
 RNAREFGENOME <- "/srv/shared/vanloo/pipeline-files/human/references/alignment/hg19/ucsc.hg19.fasta"
 
 # MOUTDIR <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/", MWESID)
-TOUTDIR <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/AML_ase/", TWESID)
+TOUTDIR <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", TWESID)
 
 minMapQ <- 35
 minBaseQ <- 20
 
-NCORES <- 12
+NCORES <- 4
 
 ## get allelecounts for matched normal exome
 chrs <- c(1:22, "X")
@@ -300,7 +300,7 @@ combine_loci_nomatch(countsdir = TOUTDIR, sample_id = TWESID)
 # minMapQ <- 35
 # minBaseQ <- 20
 
-ASEReadCount(hetSNPvcf = file.path(TOUTDIR, paste0(TWESID, "_hetSNPs_nomatch.vcf")),
+ASEReadCount(hetSNPvcf = file.path(TOUTDIR, paste0(TWESID, "_hetSNPs_nomatch.vcf.bgz")),
              bamfile = TRNABAMFILE,
              refgenome = RNAREFGENOME,
              outfile = file.path(TOUTDIR, paste0(TWESID, "_asereadcounts_nomatch.rtable")),
