@@ -31,7 +31,7 @@ combine_loci_nomatch <- function(countsdir, sample_id, bsgnom) {
   write_tsv(x = allelecounts, path = outfile, col_names = T)
   
   locivcf <- file.path(countsdir, paste0(sample_id, "_hetSNPs_nomatch.vcf"))
-  idxfile <- paste0(locivcf, ".idx")
+  # idxfile <- paste0(locivcf, ".idx")
   ## annoyingly, transcriptome is mapped to hg19, while exomes are mapped to 1000G_GRCh37d5 (positions of main chroms match, but names differ of course)
   allelecounts_vr <- VRanges(seqnames = allelecounts$chr, ranges = IRanges(start = allelecounts$pos, end = allelecounts$pos), ref = allelecounts$ref, alt = allelecounts$alt, seqinfo = seqinfo(bsgnom))
   seqlevelsStyle(allelecounts_vr) <- "UCSC"
@@ -39,9 +39,9 @@ combine_loci_nomatch <- function(countsdir, sample_id, bsgnom) {
   allelecounts_vr <- sort(allelecounts_vr)
   sampleNames(allelecounts_vr) <- sample_id
   
-  if (file.exists(idxfile))
-    file.remove(idxfile)
-  writeVcf(obj = allelecounts_vr, filename = locivcf, index = F)
+  # if (file.exists(idxfile))
+    # file.remove(idxfile)
+  writeVcf(obj = allelecounts_vr, filename = locivcf, index = T)
   
   return(NULL)
 }

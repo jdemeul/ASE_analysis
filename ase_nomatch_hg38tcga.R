@@ -1,12 +1,12 @@
 ## analysis pipeline
-library(readr)
+library(rslurm)
 library(VariantAnnotation)
 library(BSgenome.Hsapiens.NCBI.GRCh38)
 bsgnom <- BSgenome.Hsapiens.NCBI.GRCh38
 library(biomaRt)
 library(ggplot2)
-library(rslurm)
 library(VGAM)
+library(readr)
 
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/1000Genomes_getAllelecounts.R")
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/utils.R")
@@ -41,6 +41,7 @@ get_ase_tcga_laml <- function(sample_id) {
   
   dir.create(path = TOUTDIR)
   
+  if (!file.exists(file.path(TOUTDIR, paste0(sample_id, "_hetSNPs_nomatch.vcf.bgz")))) {
   ## get allelecounts for tumour exome
   mcmapply(FUN = alleleCount,
            locifile = paste0(ALLELESDIR, "1000genomeslocidbSNP151GRCh38_CHR", chrs, ".txt"),
@@ -50,14 +51,17 @@ get_ase_tcga_laml <- function(sample_id) {
   
   mclapply(X = chrs, FUN = get_alleles_chr_nomatch, allelesdir = ALLELESDIR, countsdir = TOUTDIR, sample_id = sample_id, mc.cores = NCORES, mc.preschedule = T)
   combine_loci_nomatch(countsdir = TOUTDIR, sample_id = sample_id, bsgnom = bsgnom)
+  } 
   
+  if (!file.exists(file.path(TOUTDIR, paste0(sample_id, "_asereadcounts_nomatch.rtable")))) {
   ## get allelecounts for tumour transcriptome
-  ASEReadCount(hetSNPvcf = file.path(TOUTDIR, paste0(sample_id, "_hetSNPs_nomatch.vcf")),
+  ASEReadCount(hetSNPvcf = file.path(TOUTDIR, paste0(sample_id, "_hetSNPs_nomatch.vcf.bgz")),
                bamfile = TRNABAMFILE,
                refgenome = RNAREFGENOME,
                outfile = file.path(TOUTDIR, paste0(sample_id, "_asereadcounts_nomatch.rtable")),
                minBaseQ = minBaseQ, minMapQ = minMapQ)
-  
+  }
+    
   ## compute statistics
   asedf <- compute_pvals_nomatch(toutdir = TOUTDIR, tsample = sample_id, exclude_bad_snps = F)
   
@@ -87,9 +91,9 @@ get_ase_tcga_laml <- function(sample_id) {
 
 
 # debug(get_ase_tcga_laml)
-# get_ase_tcga_laml(sample_id = sampledf[1,"sample_id"])
+# get_ase_tcga_laml(sample_id = "TCGA-AB-2871-03A")
 
-amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 15, cpus_per_node = 2, add_objects = ls(),
+amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 12, cpus_per_node = 2, add_objects = ls(),
                           pkgs = rev(.packages()), libPaths = .libPaths(), slurm_options = list(), submit = T)
 print_job_status(amlasejob)
 # cancel_slurm(amlasejob)
