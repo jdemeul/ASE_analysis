@@ -1,9 +1,9 @@
 #!/bin/bash
 
 SAMPLENAME=$1
-RNADIR=/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/PR0075-66009944_patients/
+RNADIR=/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/cell_lines/20180727_CellLines_fastq/
 
-OUTDIR=/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/mapped/${SAMPLENAME}_mapped
+OUTDIR=/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/cell_lines/mapped/${SAMPLENAME}_mapped
 
 STARREFGENOME=/srv/shared/vanloo/pipeline-files/human/references/alignment/hg19/STARidx/
 STARREFANNOT=/srv/shared/vanloo/pipeline-files/human/references/annotation/GENCODE/gencode.v23lift37.annotation.gtf
@@ -14,50 +14,44 @@ cd ${OUTDIR}
 module purge
 ml Trimmomatic
 
-# for lane in $(seq 1 4)
-# do
-#       FWDREADS=$(find ${RNADIR} -name "*${SAMPLENAME}*_L00${lane}_R1_001.fastq.gz")
-#       REVREADS=$(find ${RNADIR} -name "*${SAMPLENAME}*_L00${lane}_R2_001.fastq.gz")
+FWDREADS=$(find ${RNADIR} -name "${SAMPLENAME}*_R1_001.fastq.gz")
+REVREADS=$(find ${RNADIR} -name "${SAMPLENAME}*_R3_001.fastq.gz")
 
-#       echo "Running trimmomatic on sample ${SAMPLENAME}, lane ${lane}"
+echo "Running trimmomatic on sample ${SAMPLENAME}"
+
+java -jar $EBROOTTRIMMOMATIC/trimmomatic-0.38.jar PE -threads 4 -phred33 \
+      ${FWDREADS} ${REVREADS} \
+      ${SAMPLENAME}_R1_trimmed.fastq.gz ${SAMPLENAME}_R1_trimmed_unpaired.fastq.gz \
+      ${SAMPLENAME}_R3_trimmed.fastq.gz ${SAMPLENAME}_R3_trimmed_unpaired.fastq.gz \
+      ILLUMINACLIP:$EBROOTTRIMMOMATIC/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+
+# trim () {
+#       local lane=$1
+#       FWDREADS=$(find ${RNADIR} -name "${SAMPLENAME}*_L00${lane}_R1_001.fastq.gz")
+#       REVREADS=$(find ${RNADIR} -name "${SAMPLENAME}*_L00${lane}_R2_001.fastq.gz")
 
 #       java -jar $EBROOTTRIMMOMATIC/trimmomatic-0.36.jar PE -threads 4 -phred33 \
 #             ${FWDREADS} ${REVREADS} \
 #             ${SAMPLENAME}_L00${lane}_R1_trimmed.fastq.gz ${SAMPLENAME}_L00${lane}_R1_trimmed_unpaired.fastq.gz \
 #             ${SAMPLENAME}_L00${lane}_R2_trimmed.fastq.gz ${SAMPLENAME}_L00${lane}_R2_trimmed_unpaired.fastq.gz \
 #             ILLUMINACLIP:$EBROOTTRIMMOMATIC/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
-# done
+# }
 
-trim () {
-      local lane=$1
-      FWDREADS=$(find ${RNADIR} -name "${SAMPLENAME}*_L00${lane}_R1_001.fastq.gz")
-      REVREADS=$(find ${RNADIR} -name "${SAMPLENAME}*_L00${lane}_R2_001.fastq.gz")
-
-      java -jar $EBROOTTRIMMOMATIC/trimmomatic-0.36.jar PE -threads 4 -phred33 \
-            ${FWDREADS} ${REVREADS} \
-            ${SAMPLENAME}_L00${lane}_R1_trimmed.fastq.gz ${SAMPLENAME}_L00${lane}_R1_trimmed_unpaired.fastq.gz \
-            ${SAMPLENAME}_L00${lane}_R2_trimmed.fastq.gz ${SAMPLENAME}_L00${lane}_R2_trimmed_unpaired.fastq.gz \
-            ILLUMINACLIP:$EBROOTTRIMMOMATIC/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
-}
-
-for run in $(seq 1 4); do trim ${run} & done
-wait
+# for run in $(seq 1 4); do trim ${run} & done
+# wait
 
 echo "Running STAR"
-# ml BWA
-# bwa mem -t 4 ${BWAREFGENOME} ${SAMPLENAME}_R1_trimmed.fastq.gz ${SAMPLENAME}_R2_trimmed.fastq.gz > ${SAMPLENAME}.sam
-
 module purge
 ml STAR
 
 
-STAR --runThreadN 12 \
+STAR --runThreadN 10 \
       --genomeDir ${STARREFGENOME} \
       --readFilesCommand zcat \
-      --readFilesIn ${SAMPLENAME}_L001_R1_trimmed.fastq.gz,${SAMPLENAME}_L002_R1_trimmed.fastq.gz,${SAMPLENAME}_L003_R1_trimmed.fastq.gz,${SAMPLENAME}_L004_R1_trimmed.fastq.gz ${SAMPLENAME}_L001_R2_trimmed.fastq.gz,${SAMPLENAME}_L002_R2_trimmed.fastq.gz,${SAMPLENAME}_L003_R2_trimmed.fastq.gz,${SAMPLENAME}_L004_R2_trimmed.fastq.gz \
+      --readFilesIn ${SAMPLENAME}_R1_trimmed.fastq.gz ${SAMPLENAME}_R3_trimmed.fastq.gz \
       --outFileNamePrefix ${SAMPLENAME}_ \
       --outSAMtype BAM Unsorted \
-      --outSAMattrRGline ID:L001 SM:${SAMPLENAME} LB:LIB1 , ID:L002 SM:${SAMPLENAME} LB:LIB1 , ID:L003 SM:${SAMPLENAME} LB:LIB1 , ID:L004 SM:${SAMPLENAME} LB:LIB1 \
+      --outSAMattrRGline ID:L001 SM:${SAMPLENAME} LB:LIB1 \
       --outSAMattributes NH NM MD \
       --outSAMunmapped Within \
       --outSAMmapqUnique 50 \
@@ -76,20 +70,22 @@ STAR --runThreadN 12 \
       # --waspOutputMode SAMtag \
 
 module purge
+
+echo "Running picard and samtools"
 ml picard
 
-java -Xmx16G -jar $EBROOTPICARD/picard.jar SortSam \
+java -Xmx48G -jar $EBROOTPICARD/picard.jar SortSam \
       I=${SAMPLENAME}_Aligned.out.bam \
       O=${SAMPLENAME}_qnamesort.bam \
       SORT_ORDER=queryname
 
-java -Xmx16G -jar $EBROOTPICARD/picard.jar MarkDuplicates \
+java -Xmx48G -jar $EBROOTPICARD/picard.jar MarkDuplicates \
       I=${SAMPLENAME}_qnamesort.bam \
       O=${SAMPLENAME}_qnamesort_markdup.bam \
       M=${SAMPLENAME}_marked_dup_metrics.txt \
       ASSUME_SORT_ORDER=queryname
 
-java -Xmx16G -jar $EBROOTPICARD/picard.jar SortSam \
+java -Xmx48G -jar $EBROOTPICARD/picard.jar SortSam \
       I=${SAMPLENAME}_qnamesort_markdup.bam \
       O=${SAMPLENAME}_clean.bam \
       SORT_ORDER=coordinate
