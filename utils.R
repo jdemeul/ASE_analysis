@@ -1,5 +1,5 @@
 ## wrapper for pbetabinomial ~ binom.test
-require(VGAM)
+# require(VGAM)
 
 betabinom.test <- function (q, size, prob, rho, alternative = c("two.sided", "less", "greater")) 
 {

@@ -7,6 +7,7 @@ library(biomaRt)
 library(ggplot2)
 library(VGAM)
 library(readr)
+# library(parallel)
 
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/1000Genomes_getAllelecounts.R")
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/utils.R")
@@ -25,7 +26,7 @@ minMapQ <- 35
 minBaseQ <- 20
 
 # for cluster
-NCORES <- 1
+# NCORES <- 1
 
 chrs <- c(1:22, "X")
 sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180812_tcgadata_formatted.tsv", as.is = T)
@@ -43,13 +44,14 @@ get_ase_tcga_laml <- function(sample_id) {
   
   if (!file.exists(file.path(TOUTDIR, paste0(sample_id, "_hetSNPs_nomatch.vcf.bgz")))) {
   ## get allelecounts for tumour exome
-  mcmapply(FUN = alleleCount,
+  mapply(FUN = alleleCount,
            locifile = paste0(ALLELESDIR, "1000genomeslocidbSNP151GRCh38_CHR", chrs, ".txt"),
            outfile = file.path(TOUTDIR, paste0(sample_id, "_alleleCounts_chr", chrs, ".txt")),
-           MoreArgs = list(bam = TBAMFILE, min_baq = minBaseQ, min_maq = minMapQ),
-           mc.cores = NCORES, mc.preschedule = T)
+           MoreArgs = list(bam = TBAMFILE, min_baq = minBaseQ, min_maq = minMapQ))
+           # mc.cores = NCORES, mc.preschedule = T)
   
-  mclapply(X = chrs, FUN = get_alleles_chr_nomatch, allelesdir = ALLELESDIR, countsdir = TOUTDIR, sample_id = sample_id, mc.cores = NCORES, mc.preschedule = T)
+  lapply(X = chrs, FUN = get_alleles_chr_nomatch, allelesdir = ALLELESDIR, countsdir = TOUTDIR, sample_id = sample_id)
+         # , mc.cores = NCORES, mc.preschedule = T)
   combine_loci_nomatch(countsdir = TOUTDIR, sample_id = sample_id, bsgnom = bsgnom)
   } 
   
@@ -61,18 +63,24 @@ get_ase_tcga_laml <- function(sample_id) {
                outfile = file.path(TOUTDIR, paste0(sample_id, "_asereadcounts_nomatch.rtable")),
                minBaseQ = minBaseQ, minMapQ = minMapQ)
   }
-    
+  
+  print("compute statistics")
   ## compute statistics
   asedf <- compute_pvals_nomatch(toutdir = TOUTDIR, tsample = sample_id, exclude_bad_snps = F)
   
+
   ## Some QC and plotting
+  # specifically set bitmapType to cairo, as this seems to get messed up during rslurm submission to the nodes
+  options(bitmapType="cairo")
   # assess filtering
+  
   p2 <- ggplot(data = asedf, mapping = aes(x = pval, fill = filter <= 0.01)) + geom_histogram(binwidth = 0.01) + scale_y_log10()
   ggsave(filename = file.path(TOUTDIR, paste0(sample_id, "_filter.png")), plot = p2, dpi = 300, width = 10, height = 7)
-  
+
   # sum(asedf$padj < .05)
   # ggd.qqplot(asedf[asedf$pval > 0, "pval"])
   # ggd.qqplot(p.adjust(asedf[asedf$pval > 0, "pval"], method = "fdr"))
+
   p3 <- ggqq(asedf[asedf$pval > 0, "pval"])
   ggsave(filename = file.path(TOUTDIR, paste0(sample_id, "_QQ.png")), plot = p3, dpi = 300, width = 10, height = 7)
   
@@ -91,9 +99,9 @@ get_ase_tcga_laml <- function(sample_id) {
 
 
 # debug(get_ase_tcga_laml)
-# get_ase_tcga_laml(sample_id = "TCGA-AB-2871-03A")
+# get_ase_tcga_laml(sample_id = "TCGA-AB-2811-03B")
 
-amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 12, cpus_per_node = 2, add_objects = ls(),
+amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 35, cpus_per_node = 2, add_objects = ls(),
                           pkgs = rev(.packages()), libPaths = .libPaths(), slurm_options = list(), submit = T)
-print_job_status(amlasejob)
+# print_job_status(amlasejob)
 # cancel_slurm(amlasejob)

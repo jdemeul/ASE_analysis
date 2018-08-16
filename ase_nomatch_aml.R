@@ -7,6 +7,7 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 bsgenome_hg19 <- BSgenome.Hsapiens.UCSC.hg19
 library(biomaRt)
 library(ggplot2)
+library(parallel)
 
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/1000Genomes_getAllelecounts.R")
 source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/utils.R")

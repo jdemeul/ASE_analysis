@@ -94,20 +94,20 @@ compute_pvals_nomatch <- function(toutdir, tsample, filtercutoff = 0.01, exclude
   asecounts <- read_tsv(file = asecountsfile, col_names = T, col_types = "ciccciiiiiiii")
   genomecounts <- read_tsv(file = genomecountsfile, col_names = T, col_types = "ciccii")
   colnames(genomecounts) <- c("chr", "pos", "ref", "alt", "refCountGenome", "altCountGenome")
-  
+
   asecounts$contig <- sub(pattern = "chr", replacement = "", x = asecounts$contig)
   asedf <- merge(x = asecounts, y = genomecounts, by.x = c("contig", "position"), by.y = c("chr", "pos"))
   
   asedf <- asedf[ , c("contig", "position", "refAllele", "altAllele", "refCountGenome", "altCountGenome",
                       "refCount", "altCount")]
-  
+
   asedf$filter <- apply(X = asedf[, c("refCountGenome", "altCountGenome", "refCount", "altCount")], MARGIN = 1,
                         FUN = function(x) min(betabinom.test.ab(q = 0, size = x["refCount"] + x["altCount"], shape1 = x["refCountGenome"] + 1, shape2 = x["altCountGenome"] + 1, alternative = "two.sided"),
                                               betabinom.test.ab(q = x["refCount"] + x["altCount"], size = x["refCount"] + x["altCount"], shape1 = x["refCountGenome"] + 1, shape2 = x["altCountGenome"] + 1, alternative = "two.sided")))
   
   asedf$pval <- apply(X = asedf[, c("refCountGenome", "altCountGenome", "refCount", "altCount")], MARGIN = 1,
                       FUN = function(x) betabinom.test.ab(q = x["refCount"], size = x["refCount"] + x["altCount"], shape1 = x["refCountGenome"] + 1, shape2 = x["altCountGenome"] + 1, alternative = "two.sided"))
-  
+
   asedf$padj <- 1
   is_testworthy <- asedf$filter <= filtercutoff
   

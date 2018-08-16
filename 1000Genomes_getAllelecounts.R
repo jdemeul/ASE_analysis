@@ -1,5 +1,5 @@
 ## allelecounter
-library(parallel)
+# library(parallel)
 
 #' Run alleleCount
 #' 
