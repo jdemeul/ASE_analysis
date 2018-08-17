@@ -9,16 +9,16 @@
 
 
 # get log2fc matrix (VST)
-l2fcfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180706_RNAlog2fc_vst_AML.txt"
+l2fcfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_TCGA/20180731_RNAlog2fc_vst_AML_TCGA.txt"
 l2fcdf <-  read.delim(file = l2fcfile, as.is = T)
 
 # reformat column names
 # colnames(l2fcdf)[sapply(X = sub(pattern = "-", replacement = ".", sampledf$sampleid), FUN = grep, x = colnames(l2fcdf), simplify = T)] <- c(paste0("WES_", sampledf[!sampledf$cell_line, "t_wes_id"]), sub(pattern = "-", replacement = ".", x = sampledf[sampledf$cell_line, "sampleid"]))
 
 # get allelic imbalance pooled samples file
-airesultsfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_alloccurences_vst_AML.txt"
+airesultsfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_alloccurences_vst_AML_TCGA.txt"
 airesults <- read.delim(file = airesultsfile, sep = "\t", as.is = T)
-airesults_sub <- airesults[airesults$n_up >= 2, ]
+airesults_sub <- airesults[airesults$n_up >= 5, ]
 
 # splitsamplestring <- strsplit(airesults_sub$samples, split = ",", fixed = T)
 # imbalanced_gene_sample_combinations <- paste0(rep(x = airesults_sub$gene_name, lengths(splitsamplestring)), "_", unlist(splitsamplestring))
@@ -31,17 +31,17 @@ l2fcdf_sub$gene_name <- factor(x = l2fcdf_sub$gene_name, levels = l2fcdf_sub[ord
 
 
 ### MOD, include ALL AI cases irrespective of log2fc
-resultfiles <- c(list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T))#,
+resultfiles <- c(list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/TCGA_ASE/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T))#,
                  # list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/cell_lines/", pattern = "*imbalance_expression_vst.txt", full.names = T, recursive = T))
 
 ## omit sample 22 (mismatch) and 23 (failed exome) for now
-resultfiles <- resultfiles[-c(2)]
+# resultfiles <- resultfiles[-c(2)]
 
 airesults_all <- lapply(X = resultfiles, FUN = read.delim, as.is = T)
 # View(ai_results[[1]])
 
 airesults_all_df <- do.call(rbind, airesults_all)
-airesults_all_df$sample <- sub(pattern = "-", replacement = ".", rep(sub(pattern = "_imbalance_expression_vst.txt", replacement = "", x = basename(resultfiles)), sapply(X = airesults_all, nrow)))
+airesults_all_df$sample <- gsub(pattern = "-", replacement = ".", rep(sub(pattern = "_imbalance_expression_vst.txt", replacement = "", x = basename(resultfiles)), sapply(X = airesults_all, nrow)))
 
 airesults_all_df <- airesults_all_df[airesults_all_df$padj <= .05, ]
 airesults_all_df <- airesults_all_df[airesults_all_df$contig != "X" & !grepl(airesults_all_df$gene_name, pattern = "HLA-*") &
@@ -67,9 +67,9 @@ p1 <- ggplot(data = l2fcdf_melt, mapping = aes(x = gene_name, y = l2fc))
 p1 <- p1 + geom_violin(scale = "width", alpha =.5)
 p1 <- p1 + geom_point(data = l2fcdf_melt[l2fcdf_melt$sample_id %in% c("CD34"), ], colour = "brown", alpha = .5, size = 2, stroke = 0)
 p1 <- p1 + geom_point(data = l2fcdf_melt[l2fcdf_melt$sample_id %in% c("HL60", "MOLM16", "OCI_AML2", "OCI_AML3", "TF1", "THP1_S13", "THP1_S6"), ], colour = "green", alpha = .5, size = 2, stroke = 0)
-p1 <- p1 + geom_point(data = l2fcdf_melt[!l2fcdf_melt$sample_id %in% c("CD34","HL60", "MOLM16", "OCI_AML2", "OCI_AML3", "TF1", "THP1_S13", "THP1_S6"), ], alpha = .5, size = 2, stroke = 0)
+p1 <- p1 + geom_jitter(data = l2fcdf_melt[!l2fcdf_melt$sample_id %in% c("CD34","HL60", "MOLM16", "OCI_AML2", "OCI_AML3", "TF1", "THP1_S13", "THP1_S6"), ], alpha = .2, size = 2, stroke = 0, width = .1, height = 0)
 p1 <- p1 + geom_point(data = l2fcdf_melt[l2fcdf_melt$is_ai, ], colour = "red", alpha = .6, shape = 1, size = 2, stroke = 1)
 p1 <- p1 + theme_minimal() + theme(axis.text.x = element_text(angle = 90))
 p1
-ggsave(filename = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_l2fc_vst_AIrecurrenceGreaterThan1_AML.png", plot = p1, dpi = 300, width = 15, height = 6)
-write.table(x = l2fcdf_melt, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_l2fc_vst_AIrecurrenceGreaterThan1_table_AML.txt", sep = "\t", col.names = T, row.names = F, quote = F)
+ggsave(filename = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_l2fc_vst_AIrecurrenceGreaterThan4_AML_TCGA.png", plot = p1, dpi = 300, width = 15, height = 6)
+write.table(x = l2fcdf_melt, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_l2fc_vst_AIrecurrenceGreaterThan4_table_AML_TCGA.txt", sep = "\t", col.names = T, row.names = F, quote = F)

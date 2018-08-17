@@ -22,9 +22,11 @@ JAVA <- "/srv/sw/eb/software/Java/1.8.0_162/bin/java"
 
 
 # sampledf <- read.delim(file = "20171108_complete_samples", as.is = T)
-sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180626_aml_samples.txt", as.is = T)
-sampledf$id <- paste0(sampledf$No., sampledf$Initials)
-sampledf <-  rbind(sampledf, c(Number = "CD34", 'No.' = "", Initials = "", id = "CD34"))
+
+# sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180626_aml_samples.txt", as.is = T)
+# sampledf$id <- paste0(sampledf$No., sampledf$Initials)
+# sampledf <-  rbind(sampledf, c(Number = "CD34", 'No.' = "", Initials = "", id = "CD34"))
+
 # sampledf <- sampledf[!is.na(sampledf$n_wes_id), ]
 # sampledf[4,]
 
@@ -249,7 +251,7 @@ print(TWESID)
 # EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/Exome_Data/"
 # EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/exomes/patients/mapped"
 # RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/patients/mapped"
-EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/exomes/cell_lines/bam/"
+EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/exomes/cell_lines/mapped/"
 RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/AML/RNA/cell_lines/mapped/"
 # MBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(MWESID, "_.*bam$"), recursive = T, full.names = T)
 TBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(SAMPLEID, ".*bam$"), recursive = T, full.names = T)
@@ -278,6 +280,7 @@ dir.create(path = TOUTDIR)
 
 
 ## get allelecounts for tumour exome
+if (!file.exists(file.path(TOUTDIR, paste0(SAMPLEID, "_hetSNPs_nomatch.vcf.bgz")))) {
 mcmapply(FUN = alleleCount,
          locifile = paste0(ALLELESDIR, "1000genomesloci2013v5b_chr", chrs, ".txt"),
          outfile = file.path(TOUTDIR, paste0(TWESID, "_alleleCounts_chr", chrs, ".txt")),
@@ -291,7 +294,7 @@ mcmapply(FUN = alleleCount,
 # construct_new_loci(countsdir = MOUTDIR, outdir = MOUTDIR, sample_id = MWESID)
 mclapply(X = chrs, FUN = get_alleles_chr_nomatch, allelesdir = ALLELESDIR, countsdir = TOUTDIR, sample_id = TWESID, mc.cores = NCORES)
 combine_loci_nomatch(countsdir = TOUTDIR, sample_id = TWESID)
-
+}
 
 ## run allelecount on the new hetloci for tumour
 # alleleCount(locifile = file.path(MOUTDIR, paste0(MWESID, "_hetSNPs_loci.txt")),
@@ -307,13 +310,13 @@ combine_loci_nomatch(countsdir = TOUTDIR, sample_id = TWESID)
 # hetSNPvcf <- file.path(MOUTDIR, paste0(MWESID, "_hetSNPs.vcf"))
 # minMapQ <- 35
 # minBaseQ <- 20
-
+if (!file.exists(file.path(TOUTDIR, paste0(SAMPLEID, "_asereadcounts_nomatch.rtable")))) {
 ASEReadCount(hetSNPvcf = file.path(TOUTDIR, paste0(TWESID, "_hetSNPs_nomatch.vcf.bgz")),
              bamfile = TRNABAMFILE,
              refgenome = RNAREFGENOME,
              outfile = file.path(TOUTDIR, paste0(TWESID, "_asereadcounts_nomatch.rtable")),
              minBaseQ = minBaseQ, minMapQ = minMapQ)
-
+}
 # mcmapply(hetSNPvcf = file.path(TOUTDIR, paste0(TWESID, "_hetSNPs_nomatch_chr", chrs, ".vcf")),
 #          outfile = file.path(TOUTDIR, paste0(TWESID, "_asereadcounts_chr", chrs, ".rtable")), 
 #          FUN = ASEReadCount, MoreArgs = list(bamfile = TRNABAMFILE, refgenome = RNAREFGENOME, minBaseQ = minBaseQ, minMapQ = minMapQ),
@@ -357,10 +360,13 @@ ggsave(filename = file.path(TOUTDIR, paste0(TWESID, "_manhattan.png")), plot = p
 return(NULL)
 }
 
+# sampledf <- data.frame(SAMPLEID = c("HL60", "MOLM16", "OCI_AML2", "OCI_AML3", "TF1", "THP1_S6", "THP1_S13" ))
+sampledf <- data.frame(SAMPLEID = c("OCI_AML3", "TF1"))
 
-sampledf <- data.frame(SAMPLEID = c("HL60", "MOLM16", "OCI_AML2", "OCI_AML3", "TF1", "THP1_S6", "THP1_S13" ))
+# debug(get_ase_aml_cell)
+# get_ase_aml_cell(SAMPLEID = "HL60")
 
-
-amlasecelljob <- slurm_apply(f = get_ase_aml_cell, params = sampledf[,"SAMPLEID", drop = F], jobname = "ase_aml_cell", nodes = 7, cpus_per_node = 2, add_objects = ls(),
+amlasecelljob <- slurm_apply(f = get_ase_aml_cell, params = sampledf[,"SAMPLEID", drop = F], jobname = "ase_aml_cell", nodes = 2, cpus_per_node = 1, add_objects = ls(),
                          pkgs = rev(.packages()), libPaths = .libPaths(), slurm_options = list(), submit = T)
 print_job_status(amlasecelljob)
+# cancel_slurm(amlasecelljob)

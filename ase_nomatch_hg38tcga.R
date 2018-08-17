@@ -64,7 +64,6 @@ get_ase_tcga_laml <- function(sample_id) {
                minBaseQ = minBaseQ, minMapQ = minMapQ)
   }
   
-  print("compute statistics")
   ## compute statistics
   asedf <- compute_pvals_nomatch(toutdir = TOUTDIR, tsample = sample_id, exclude_bad_snps = F)
   
@@ -72,6 +71,7 @@ get_ase_tcga_laml <- function(sample_id) {
   ## Some QC and plotting
   # specifically set bitmapType to cairo, as this seems to get messed up during rslurm submission to the nodes
   options(bitmapType="cairo")
+  print(getOption(x = "bitmapType"))
   # assess filtering
   
   p2 <- ggplot(data = asedf, mapping = aes(x = pval, fill = filter <= 0.01)) + geom_histogram(binwidth = 0.01) + scale_y_log10()
@@ -101,7 +101,7 @@ get_ase_tcga_laml <- function(sample_id) {
 # debug(get_ase_tcga_laml)
 # get_ase_tcga_laml(sample_id = "TCGA-AB-2811-03B")
 
-amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 35, cpus_per_node = 2, add_objects = ls(),
+amlasejob <- slurm_apply(f = get_ase_tcga_laml, params = sampledf[,"sample_id", drop = F], jobname = "ase_aml_tcga", nodes = 10, cpus_per_node = 7, add_objects = ls(),
                           pkgs = rev(.packages()), libPaths = .libPaths(), slurm_options = list(), submit = T)
 # print_job_status(amlasejob)
 # cancel_slurm(amlasejob)

@@ -1,6 +1,6 @@
 ## check allelically imbalanced and downregulated genes for nonsense mutations
 
-airesults <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_allelic_imbalance_pooledsamples_vst_AML.txt",
+airesults <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_allelic_imbalance_pooledsamples_vst_AML_TCGA.txt",
                         sep = "\t", as.is = T)
 airesults$sample <- factor(airesults$sample, levels = c(sort(unique(airesults$sample))))
 
@@ -13,7 +13,7 @@ aioccurrencespergene <- do.call(rbind, by(data = airesults, INDICES = airesults$
                                                                                                                 updown = paste0(ifelse(x$log2fc > 0, "+", "-"), collapse = ","),
                                                                                                                 gene_name = x$gene_name[1])))
 write.table(x = aioccurrencespergene[, c("gene_name", "samples", "updown", "n_up", "n_down")],
-            file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_alloccurences_vst_AML.txt", quote = F, sep = "\t", row.names = F)
+            file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180817_alloccurences_vst_AML_TCGA.txt", quote = F, sep = "\t", row.names = F)
 
 
 

@@ -3,7 +3,7 @@
 ## get log2-fold expression values of T-ALL samples
 library(DESeq2)
 
-countsdir <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/AML_RNAseq_counts/"
+countsdir <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_RNAseq_counts/"
 # setwd(countsdir)
 
 sampleFiles <- list.files(path = countsdir, pattern = ".alignments.bam.count")
@@ -20,8 +20,8 @@ ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
 dds <- estimateSizeFactors(ddsHTSeq)
 dds_vst <- vst(dds, blind = T)
 # head(assay(dds_vst), 3)
-library(vsn)
-meanSdPlot(assay(dds_vst))
+# library(vsn)
+# meanSdPlot(assay(dds_vst))
 # ntd <- normTransform(dds)
 # meanSdPlot(assay(ntd))
 
@@ -36,17 +36,17 @@ resdf <- as.data.frame(counts(dds, normalized=TRUE))
 
 l2fcdf <- as.data.frame(vst_fc)
 
-gene_ids_names <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180525_HTSeqCount_gene_names.txt", as.is = T, header = F)
+gene_ids_names <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180525_HTSeqCount_gene_names.txt", as.is = T, header = F)
 rownames(gene_ids_names) <- gene_ids_names$V1
 
 l2fcdf$gene_name <- gene_ids_names[rownames(l2fcdf), "V2"]
 l2fcdf$mean_expression <- 2^rowMeans(x = log2(resdf+1))
 
-resdf$gene_name <- gene_ids_names[substr(rownames(resdf), 1, 15), "V2"]
+resdf$gene_name <- gene_ids_names[rownames(resdf), "V2"]
 
-write.table(x = l2fcdf, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180706_RNAlog2fc_vst_AML.txt", quote = F, sep = "\t", row.names = T, col.names = T)
-write.table(x = as.data.frame(assay(dds_vst)), file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180706_RNAcounts_vst_AML.txt", quote = F, sep = "\t", row.names = T, col.names = T)
-write.table(x = resdf, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180706_RNAcounts_normalised_AML.txt", quote = F, sep = "\t", row.names = T, col.names = T)
+write.table(x = l2fcdf, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180706_RNAlog2fc_vst_AML.txt", quote = F, sep = "\t", row.names = T, col.names = T)
+write.table(x = as.data.frame(assay(dds_vst)), file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180706_RNAcounts_vst_AML.txt", quote = F, sep = "\t", row.names = T, col.names = T)
+write.table(x = resdf, file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180706_RNAcounts_normalised_AML.txt", quote = F, sep = "\t", row.names = T, col.names = T)
 
 
 
@@ -113,28 +113,24 @@ plot_imbalance_expression <- function(imbalancedf) {
 # generate library of all Hs exons (should be the covered regions).
 gtffile <- "/srv/shared/vanloo/pipeline-files/human/references/annotation/GENCODE/gencode.v23lift37.annotation.gtf"
 hstxdb <- makeTxDbFromGFF(file = gtffile, organism = "Homo sapiens")
-seqlevels(hstxdb) <- sub(pattern = "chr", replacement = "", x = seqlevels(seqinfo(hstxdb)))
+# seqlevels(hstxdb) <- sub(pattern = "chr", replacement = "", x = seqlevels(seqinfo(hstxdb)))
 hsexondb <- exons(x = hstxdb, columns = c("gene_id"))
+seqlevelsStyle(hsexondb) <- "Ensembl"
 
-sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180626_aml_samples.txt", as.is = T)
-sampledf <-  rbind(sampledf, c(Number = "CD34", 'No.' = "", Initials = "", id = "CD34"))
-sampledf$cell_line <- F
+# sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180626_aml_samples.txt", as.is = T)
+# sampledf <-  rbind(sampledf, c(Number = "CD34", 'No.' = "", Initials = "", id = "CD34"))
+# sampledf$cell_line <- F
 
 # add in the log2-fold change data and actual gene names
 l2fcfile <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180706_RNAlog2fc_vst_AML.txt"
 l2fcdf <-  read.delim(file = l2fcfile, as.is = T)
 
-for (i in 1:nrow(sampledf)) {
+# 2 is bad, 22 and 23 currently unavailable exome
+for (SAMPLEID in sampleName[-c(2, 22, 23)]) {
   # i <- 1
-  SAMPLEID <- sampledf[i, "Number"]
+  # SAMPLEID <- sampledf[i, "Number"]
   
-  ## read a results file
-  if (sampledf[i, "cell_line"]) {
-    ase_resultsfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/cell_lines/", SAMPLEID, "/", SAMPLEID, "_ase_out.txt")
-  } else {
-    # TWESID <- paste0("WES_", sampledf[i, "t_wes_id"])
-    ase_resultsfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_ase_out.txt")
-  }
+  ase_resultsfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_ase_out.txt")
   ase_results <- read.delim(file = ase_resultsfile, as.is = T)
   
   
@@ -158,21 +154,13 @@ for (i in 1:nrow(sampledf)) {
   # format
   outdf$contig <- factor(outdf$contig, levels = c(1:22, "X"))
   outdf <- outdf[order(outdf$contig, as.integer(unlist(lapply(strsplit(outdf$positions, split = ","), FUN = function(x) x[1])))), ]
-  if (sampledf[i, "cell_line"]) {
-    outfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/cell_lines/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.txt")
-  } else {
-    outfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.txt")
-  }
+  outfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.txt")
   write.table(x = outdf, file = outfile, quote = F, sep = "\t", row.names = F, col.names = T)
   
   
   # plot
   p1 <- plot_imbalance_expression(imbalancedf = outdf)
-  if (sampledf[i, "cell_line"]) {
-    plotfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/cell_lines/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.png")
-  } else {
-    plotfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.png")
-  }
+  plotfile <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/AML_ase/", SAMPLEID, "/", SAMPLEID, "_imbalance_expression_vst.png")
   ggsave(filename = plotfile, plot = p1, dpi = 300, width = 15, height = 6)
 }
 
