@@ -37,7 +37,7 @@ java -Xmx48G -jar ${EBROOTTRIMMOMATIC}/trimmomatic-0.38.jar \
 
 echo "Running bwa-mem"
 # ml BWA
-bwa mem -M -a -t 8 -R '@RG\tID:${SAMPLENAME}\tPL:ILLUMINA\tLB:${SAMPLENAME}\tSM:${SAMPLENAME}' \
+bwa mem -M -a -t 8 -R "@RG\tID:${SAMPLENAME}\tPL:ILLUMINA\tLB:${SAMPLENAME}\tSM:${SAMPLENAME}" \
       ${BWAINDEX} \
       ${SAMPLENAME}_R1_trimmed.fastq.gz ${SAMPLENAME}_R3_trimmed.fastq.gz \
       > ${SAMPLENAME}.sam

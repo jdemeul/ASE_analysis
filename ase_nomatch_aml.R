@@ -361,10 +361,10 @@ return(NULL)
 }
 
 # sampledf <- data.frame(SAMPLEID = c("HL60", "MOLM16", "OCI_AML2", "OCI_AML3", "TF1", "THP1_S6", "THP1_S13" ))
-sampledf <- data.frame(SAMPLEID = c("OCI_AML3", "TF1"))
+# sampledf <- data.frame(SAMPLEID = c("OCI_AML3", "TF1"))
 
 # debug(get_ase_aml_cell)
-# get_ase_aml_cell(SAMPLEID = "HL60")
+# get_ase_aml_cell(SAMPLEID = "THP1_S13")
 
 amlasecelljob <- slurm_apply(f = get_ase_aml_cell, params = sampledf[,"SAMPLEID", drop = F], jobname = "ase_aml_cell", nodes = 2, cpus_per_node = 1, add_objects = ls(),
                          pkgs = rev(.packages()), libPaths = .libPaths(), slurm_options = list(), submit = T)
