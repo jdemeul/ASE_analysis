@@ -121,15 +121,23 @@ gatk --java-options "-Xmx8G" FilterByOrientationBias \
       -P ${SAMPLENAME}_SequencingArtifactMetrics.pre_adapter_detail_metrics \
       -O ${SAMPLENAME}_unmatched_m2_snvs_indels_filt_x2.vcf.gz
 
-# # make SV/indel calls using SvABA
-# module purge
-# ml SvABA
+gatk --java-options "-Xmx4G" SelectVariants \
+    -R ${REFGENOME} \
+    -V ${SAMPLENAME}_unmatched_m2_snvs_indels_filt_x2.vcf.gz \
+    -O ${SAMPLENAME}_unmatched_m2_snvs_indels_filt_x2_pass.vcf.gz \
+    -L ${TARGETPANEL} \
+    --exclude-filtered true
 
-# svaba run -p 4 --germline \
-#       -t ${SAMPLENAME}_sorted_unique_recal.bam \
-#       -k ${TARGETPANEL} \
-#       -a suresel_fat1 \
-#       -G ${BWAINDEX}
+# make SV/indel calls using SvABA
+module purge
+ml SvABA
+
+svaba run -p 4 --germline \
+      -t ${SAMPLENAME}_sorted_unique_recal.bam \
+      -k ${TARGETPANEL} \
+      -a ${SAMPLENAME} \
+      -G ${BWAINDEX} \
+      --dbsnp-vcf ${KNOWNSNPS}
 
 echo "Cleaning up"
 
