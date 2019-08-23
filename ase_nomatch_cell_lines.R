@@ -1,5 +1,9 @@
+# args = commandArgs(TRUE)
+# SAMPLEID = toString(args[1])
+
 ## analysis pipeline
 library(readr)
+library(VGAM)
 library(VariantAnnotation)
 library(BSgenome.Hsapiens.1000genomes.hs37d5)
 bsgenome_hs37d5 <- BSgenome.Hsapiens.1000genomes.hs37d5
@@ -8,22 +12,26 @@ bsgenome_hg19 <- BSgenome.Hsapiens.UCSC.hg19
 library(biomaRt)
 library(ggplot2)
 
-source(file = "1000Genomes_getAllelecounts.R")
-source(file = "utils.R")
+source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/1000Genomes_getAllelecounts.R")
+source(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/utils.R")
 
 
 ## statics
-ALLELECOUNTER <- "/home/jdemeul/bin/alleleCounter"
+# ALLELECOUNTER <- "/home/jdemeul/bin/alleleCounter"
+ALLELECOUNTER <- "/srv/sw/eb/software/alleleCount/4.0.0-GCCcore-7.3.0/bin/alleleCounter"
 ALLELESDIR <- "/srv/shared/vanloo/pipeline-files/human/references/1000genomes/1000genomes_20130501_v5b/"
-JAVA <- "/srv/sw/eb/software/Java/1.8.0_141/bin/java"
+# JAVA <- "/srv/sw/eb/software/Java/1.8.0_162/bin/java"
+JAVA <- "/srv/sw/eb/software/Java/1.8.0_202/bin/java"
 
 
 # sampledf <- read.delim(file = "20171108_complete_samples", as.is = T)
-sampledf <- read.delim(file = "20180522_cell_lines", as.is = T)
+# sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180522_cell_lines", as.is = T)
 # sampledf <- sampledf[!is.na(sampledf$n_wes_id), ]
 # sampledf[4,]
 
-for (SAMPLEID in sampledf[1:nrow(sampledf), "sampleid"]) {
+# for (SAMPLEID in sampledf[1:nrow(sampledf), "sampleid"]) {
+for (SAMPLEID in c( "CTV1", "PEER", "SUPT1", "SUPT11", "SUPT13", "HSB2", "HPB-ALL", "CUTLL1", "KARPAS45", "MOLT16" )) {
+  # SAMPLEID <- "ALL-SIL"
 # for (i in 1:nrow(sampledf)) {
 # i <- 8
 ## required input
@@ -39,17 +47,17 @@ print(TWESID)
 EXOMEDIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/Cell_lines/Exomes_TALL_Cell_Lines/mapped/"
 RNADIR <- "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/RNA-seq_T-ALL/"
 # MBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(MWESID, "_.*bam$"), recursive = T, full.names = T)
-TBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(TWESID, ".*bam$"), recursive = T, full.names = T)
-TRNABAMFILE <- list.files(path = RNADIR, pattern = paste0(SAMPLEID, ".*bam$"), recursive = T, full.names = T)
+TBAMFILE <- list.files(path = EXOMEDIR, pattern = paste0(TWESID, "_", ".*bam$"), recursive = T, full.names = T)
+TRNABAMFILE <- list.files(path = RNADIR, pattern = paste0(SAMPLEID, "_", ".*bam$"), recursive = T, full.names = T)
 RNAREFGENOME <- "/srv/shared/vanloo/pipeline-files/human/references/alignment/hg19/ucsc.hg19.fasta"
 
 # MOUTDIR <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/", MWESID)
-TOUTDIR <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/cell_lines/", TWESID)
+TOUTDIR <- paste0("/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/cell_lines/", TWESID)
 
 minMapQ <- 35
 minBaseQ <- 20
 
-NCORES <- 12
+# NCORES <- 1
 
 ## get allelecounts for matched normal exome
 chrs <- c(1:22, "X")
@@ -65,11 +73,16 @@ dir.create(path = TOUTDIR)
 
 
 ## get allelecounts for tumour exome
-mcmapply(FUN = alleleCount,
+# mcmapply(FUN = alleleCount,
+#          locifile = paste0(ALLELESDIR, "1000genomesloci2013v5b_chr", chrs, ".txt"),
+#          outfile = file.path(TOUTDIR, paste0(TWESID, "_alleleCounts_chr", chrs, ".txt")),
+#          MoreArgs = list(bam = TBAMFILE, min_baq = minBaseQ, min_maq = minMapQ),
+#          mc.cores = NCORES)
+
+mapply(FUN = alleleCount,
          locifile = paste0(ALLELESDIR, "1000genomesloci2013v5b_chr", chrs, ".txt"),
          outfile = file.path(TOUTDIR, paste0(TWESID, "_alleleCounts_chr", chrs, ".txt")),
-         MoreArgs = list(bam = TBAMFILE, min_baq = minBaseQ, min_maq = minMapQ),
-         mc.cores = NCORES)
+         MoreArgs = list(bam = TBAMFILE, min_baq = minBaseQ, min_maq = minMapQ))
 
 
 ####### read in loci from the matched normal exome, keep only the clean heterozygous ones
@@ -162,9 +175,12 @@ combine_loci_nomatch <- function(countsdir, sample_id) {
   } else {
     allelecounts_vr <- VRanges(seqnames = paste0("chr", allelecounts$chr), ranges = IRanges(start = allelecounts$pos, end = allelecounts$pos), ref = allelecounts$ref, alt = allelecounts$alt, seqinfo = seqinfo(bsgenome_hg19))
   }
+  # allelecounts_vr <- allelecounts_vr[seqnames(allelecounts_vr) == "chr1"]
   allelecounts_vr <- sort(allelecounts_vr)
+  mcols(allelecounts_vr)$GT <- rep(x = "0/1", times = length(allelecounts_vr))
   sampleNames(allelecounts_vr) <- sample_id
-  writeVcf(obj = allelecounts_vr, filename = locivcf)
+  writeVcf(obj = allelecounts_vr, filename = locivcf, index = T)
+  writeVcf(obj = allelecounts_vr, filename = locivcf, index = F)
   
   return(NULL)
 }
@@ -174,7 +190,8 @@ combine_loci_nomatch <- function(countsdir, sample_id) {
 # mclapply(X = chrs, FUN = get_alleles_chr, allelesdir = ALLELESDIR, countsdir = MOUTDIR, outdir = MOUTDIR, sample_id = MWESID, mc.cores = NCORES)
 # debug(construct_new_loci)
 # construct_new_loci(countsdir = MOUTDIR, outdir = MOUTDIR, sample_id = MWESID)
-mclapply(X = chrs, FUN = get_alleles_chr_nomatch, allelesdir = ALLELESDIR, countsdir = TOUTDIR, sample_id = TWESID, mc.cores = NCORES)
+# mclapply(X = chrs, FUN = get_alleles_chr_nomatch, allelesdir = ALLELESDIR, countsdir = TOUTDIR, sample_id = TWESID, mc.cores = NCORES)
+lapply(X = chrs, FUN = get_alleles_chr_nomatch, allelesdir = ALLELESDIR, countsdir = TOUTDIR, sample_id = TWESID)
 combine_loci_nomatch(countsdir = TOUTDIR, sample_id = TWESID)
 
 
@@ -189,20 +206,36 @@ combine_loci_nomatch(countsdir = TOUTDIR, sample_id = TWESID)
 ## Use ASEReadCounter to get allelecounts on the RNA
 
 ASEReadCount <- function(hetSNPvcf, bamfile, refgenome, outfile, minBaseQ = 20, minMapQ = 35) {
-  cmd <- paste0(JAVA, " -jar /srv/sw/eb/software/GATK/3.8-Java-1.8.0_141/GenomeAnalysisTK.jar",
+  cmd <- paste0(JAVA, " -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -jar /srv/sw/eb/software/GATK/4.1.0.0-foss-2018b-Python-3.6.6/gatk-package-4.1.0.0-local.jar ASEReadCounter",#" -jar /srv/sw/eb/software/GATK/3.8-1-Java-1.8.0_162/GenomeAnalysisTK.jar", #" -jar /srv/sw/eb/software/GATK/3.8-Java-1.8.0_141/GenomeAnalysisTK.jar",
                 " -R ", refgenome,
-                " -T ASEReadCounter",
-                " -o ", outfile,
+                " -O ", outfile,
                 " -I ", bamfile,
-                " -sites ", hetSNPvcf,
-                " -U ALLOW_N_CIGAR_READS",
-                " -minDepth 1",
-                " --minMappingQuality ", minMapQ,
-                " --minBaseQuality ", minBaseQ,
-                " --countOverlapReadsType COUNT_FRAGMENTS_REQUIRE_SAME_BASE")
+                " -V ", hetSNPvcf,
+                " -min-depth 1",
+                " -mmq ", minMapQ,
+                " -mbq ", minBaseQ,
+                " --count-overlap-reads-handling COUNT_FRAGMENTS_REQUIRE_SAME_BASE")
   system(cmd, wait = T)
   # return(cmd)
 }
+
+# ASEReadCount <- function(hetSNPvcf, bamfile, refgenome, outfile, minBaseQ = 20, minMapQ = 35) {
+#   cmd <- paste0(JAVA, " -jar /srv/sw/eb/software/GATK/4.0.8.1-foss-2018b-Python-2.7.15/gatk-package-4.0.8.1-local.jar ASEReadCounter",#" -jar /srv/sw/eb/software/GATK/3.8-1-Java-1.8.0_162/GenomeAnalysisTK.jar", #" -jar /srv/sw/eb/software/GATK/3.8-Java-1.8.0_141/GenomeAnalysisTK.jar",
+#                 " -R ", refgenome,
+#                 " -T ASEReadCounter",
+#                 " -o ", outfile,
+#                 " -I ", bamfile,
+#                 " -sites ", hetSNPvcf,
+#                 " -U ALLOW_N_CIGAR_READS",
+#                 " -minDepth 1",
+#                 " --minMappingQuality ", minMapQ,
+#                 " --minBaseQuality ", minBaseQ,
+#                 " --countOverlapReadsType COUNT_FRAGMENTS_REQUIRE_SAME_BASE")
+#   system(cmd, wait = T)
+#   # return(cmd)
+# }
+
+
 
 # RNAREFGENOME <- "/srv/shared/vanloo/pipeline-files/human/references/alignment/hg19/ucsc.hg19.fasta"
 # outfile <- file.path(TOUTDIR, paste0(TWESID, "_asereadcounts.rtable"))
@@ -211,7 +244,7 @@ ASEReadCount <- function(hetSNPvcf, bamfile, refgenome, outfile, minBaseQ = 20, 
 # minMapQ <- 35
 # minBaseQ <- 20
 
-ASEReadCount(hetSNPvcf = file.path(TOUTDIR, paste0(TWESID, "_hetSNPs_nomatch.vcf")),
+ASEReadCount(hetSNPvcf = file.path(TOUTDIR, paste0(TWESID, "_hetSNPs_nomatch.vcf.bgz")),
              bamfile = TRNABAMFILE,
              refgenome = RNAREFGENOME,
              outfile = file.path(TOUTDIR, paste0(TWESID, "_asereadcounts_nomatch.rtable")),

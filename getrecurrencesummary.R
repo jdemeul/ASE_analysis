@@ -1,7 +1,8 @@
 ## check allelically imbalanced and downregulated genes for nonsense mutations
 
-airesults <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180525_allelic_imbalance_pooledsamples_vst.txt",
+airesults <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20181108_allelic_imbalance_pooledsamples_vst.txt",
                         sep = "\t", as.is = T)
+sampledf <- read.delim(file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20180525_complete_samples.txt", as.is = T)
 airesults$sample <- factor(airesults$sample, levels = c(paste0("WES_", 1:18), sampledf[sampledf$cell_line, "sampleid"]))
 
 airecurrences <- table(airesults[airesults$log2fc > 0, "gene_name"])
@@ -13,11 +14,11 @@ aioccurrencespergene <- do.call(rbind, by(data = airesults, INDICES = airesults$
                                                                                                                 updown = paste0(ifelse(x$log2fc > 0, "+", "-"), collapse = ","),
                                                                                                                 gene_name = x$gene_name[1])))
 write.table(x = aioccurrencespergene[, c("gene_name", "samples", "updown", "n_up", "n_down")],
-            file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/ASE_analysis/20180525_alloccurences_vst.txt", quote = F, sep = "\t", row.names = F)
+            file = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/results/20181108_alloccurences_vst.txt", quote = F, sep = "\t", row.names = F)
 
 
 
-####
+############
 
 snvcallfiles <- list.files(path = "/srv/shared/vanloo/home/jdemeul/projects/2016_mansour_ASE_T-ALL/data/Exome_Data/", pattern = "*.raw.snps.indels_VARIANT_FILTRATION.vcf.avinput.hg19_multianno.txt", full.names = T, recursive = T)
 snvcallfiles
